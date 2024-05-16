@@ -16,7 +16,7 @@ def main():
         for number in fibonacci_number_generator(numb):
             print(number, end=" ")
     except ValueError:
-        print("Пожалуйста, введите целое число.")
+        print("введено не целое число")
 
 
 if __name__ == "__main__":
