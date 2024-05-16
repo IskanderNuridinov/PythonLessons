@@ -20,7 +20,7 @@ class AnimalFactory:
         elif animal_type == "cat":
             return Cat()
         else:
-            raise ValueError("Unknown animal type")
+            raise ValueError("неверный тип животного")
 
 if __name__ == "__main__":
     factory = AnimalFactory()
