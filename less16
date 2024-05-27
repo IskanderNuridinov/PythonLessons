@@ -1,0 +1,126 @@
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Table
+from sqlalchemy.orm import relationship, sessionmaker, declarative_base
+
+Base = declarative_base()
+
+book_author = Table('book_author', Base.metadata,
+                    Column('book_id', Integer, ForeignKey('books.id')),
+                    Column('author_id', Integer, ForeignKey('authors.id'))
+                    )
+
+class Genre(Base):
+    __tablename__ = 'genres'
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+
+class Author(Base):
+    __tablename__ = 'authors'
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    books = relationship('Book', secondary=book_author, back_populates='authors')
+
+class Book(Base):
+    __tablename__ = 'books'
+    id = Column(Integer, primary_key=True)
+    title = Column(String, unique=True, nullable=False)
+    genre_id = Column(Integer, ForeignKey('genres.id'))
+    genre = relationship('Genre')
+    authors = relationship('Author', secondary=book_author, back_populates='books')
+
+engine = create_engine('postgresql+psycopg2://postgres:postgres@localhost/test_iskander')
+Base.metadata.create_all(engine)
+
+Session = sessionmaker(bind=engine)
+session = Session()
+
+# Добавление
+def add_genre(name):
+    genre = Genre(name=name)
+    session.add(genre)
+    session.commit()
+
+def add_author(name):
+    author = Author(name=name)
+    session.add(author)
+    session.commit()
+
+def add_book(title, genre_name, author_names):
+    genre = session.query(Genre).filter_by(name=genre_name).first()
+    if not genre:
+        raise ValueError(f"Жанр '{genre_name}' не найден.")
+    authors = [session.query(Author).filter_by(name=name).first() for name in author_names]
+    if None in authors:
+        raise ValueError("Один или несколько авторов не найдены.")
+    book = Book(title=title, genre=genre, authors=authors)
+    session.add(book)
+    session.commit()
+
+# Удаление
+def delete_genre(name):
+    genre = session.query(Genre).filter_by(name=name).first()
+    if genre:
+        session.delete(genre)
+        session.commit()
+
+def delete_author(name):
+    author = session.query(Author).filter_by(name=name).first()
+    if author:
+        session.delete(author)
+        session.commit()
+
+def delete_book(title):
+    book = session.query(Book).filter_by(title=title).first()
+    if book:
+        session.delete(book)
+        session.commit()
+
+# Редактирование
+def update_genre(old_name, new_name):
+    genre = session.query(Genre).filter_by(name=old_name).first()
+    if genre:
+        genre.name = new_name
+        session.commit()
+
+def update_author(old_name, new_name):
+    author = session.query(Author).filter_by(name=old_name).first()
+    if author:
+        author.name = new_name
+        session.commit()
+
+def update_book(old_title, new_title):
+    book = session.query(Book).filter_by(title=old_title).first()
+    if book:
+        book.title = new_title
+        session.commit()
+
+# Поиск информации
+def get_book_by_title(title):
+    return session.query(Book).filter_by(title=title).first()
+
+def get_author_by_name(name):
+    return session.query(Author).filter_by(name=name).first()
+
+def get_genre_by_name(name):
+    return session.query(Genre).filter_by(name=name).first()
+
+# Сложные операции
+def get_books_by_author(author_name):
+    author = session.query(Author).filter_by(name=author_name).first()
+    if author:
+        return author.books
+    return []
+
+def get_books_by_genre(genre_name):
+    genre = session.query(Genre).filter_by(name=genre_name).first()
+    if genre:
+        return session.query(Book).filter_by(genre=genre).all()
+    return []
+
+def search_books_by_title_part(title_part):
+    return session.query(Book).filter(Book.title.ilike(f"%{title_part}%")).all()
+
+def search_authors_by_name_part(name_part):
+    return session.query(Author).filter(Author.name.ilike(f"%{name_part}%")).all()
+
+def search_genres_by_name_part(name_part):
+    return session.query(Genre).filter(Genre.name.ilike(f"%{name_part}%")).all()
